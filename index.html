@@ -32,6 +32,7 @@
             color: #7f8c8d;
             font-size: 14px;
             margin-bottom: 30px;
+            text-align: center;
         }
 
         /* Control Panel Styles */
@@ -167,7 +168,7 @@
             letter-spacing: 1px;
         }
 
-        /* Preview Container Frame */
+        /* [변경] 미리보기 외곽 프레임: 고정 폭(500px)을 제거하고 창 크기에 맞춰 유연하게 변하도록 반응형 처리 */
         .preview-container {
             background: #ffffff;
             padding: 0;
@@ -175,7 +176,9 @@
             box-shadow: 0 15px 40px rgba(0,0,0,0.08);
             overflow: hidden;
             display: inline-block;
-            width: 500px; 
+            width: 100%;
+            max-width: 500px; /* 최대 크기는 원래대로 500px 고정 */
+            box-sizing: border-box;
             height: auto; 
         }
 
@@ -187,7 +190,7 @@
             padding: 60px 48px 60px 48px;
             box-sizing: border-box;
             
-            transform: scale(0.5);
+            /* 자바스크립트에서 창 크기에 따라 실시간으로 scale 수치를 변경하므로 초기 세팅은 대기 */
             transform-origin: top left;
             margin-bottom: 0; 
         }
@@ -304,11 +307,10 @@
             font-weight: 400;
         }
 
-        /* [변경] 비공식 안내 문구 스타일 정밀 튜닝 */
         .unofficial-notice {
             text-align: right;
-            color: #BCBCBC;             /* 기존 #A0A0A0 -> 더 부드럽고 연한 연회색(#BCBCBC)으로 전면 변경 */
-            font-size: 22px;            /* 기존 24px -> 22px로 2px 축소 (화면 실체감 정확히 1pt 단축) */
+            color: #BCBCBC;
+            font-size: 22px;
             font-weight: 400;
             margin-top: 50px;
             padding-right: 12px;
@@ -319,7 +321,7 @@
 <body>
 
     <h1>빛밤 피드 메이커</h1>
-    <div class="subtitle">문제가 생길 시 불시에 내려갈 수 있습니다.</div>
+    <div class="subtitle">내용을 입력하면 세로 길이가 분량에 맞춰 유연하게 늘어납니다.<br>(출력: 1000px 고정 / 미리보기: 브라우저 창 크기에 따라 반응형 축소)</div>
 
     <div class="control-panel">
         <div class="control-group">
@@ -334,7 +336,7 @@
             <input type="text" id="input-name" value="" placeholder="이름을 입력하세요" oninput="updateText()">
         </div>
         <div class="control-group">
-            <label>2. 피드 내용</label>
+            <label>2. 피드 본문 내용</label>
             <textarea id="input-text" rows="2" placeholder="피드 본문 내용을 입력하세요" oninput="updateText()"></textarea>
         </div>
         <div class="control-group">
@@ -343,27 +345,14 @@
             <textarea id="input-c1-text" rows="2" placeholder="댓글 내용을 입력하세요" oninput="updateText()"></textarea>
         </div>
         <div class="control-group">
-            <label>4. 대댓글 본문</label>
+            <label>4. 답글 본문</label>
             <textarea id="input-c2-text" rows="3" placeholder="답글 내용을 입력하세요" oninput="updateText()"></textarea>
         </div>
         <div class="control-group">
             <label>5. 좋아요한 사람</label>
-            <input type="text" id="input-heart-user" value="" placeholder=" 좋아요한 사람" oninput="updateText()">
+            <input type="text" id="input-heart-user" value="" placeholder="좋아요한 사람" oninput="updateText()">
         </div>
-        <button onclick="downloadImage()">이미지 저장</button>
-    </div>
-
-    <div class="crop-modal" id="cropModal">
-        <div class="crop-content">
-            <h3>프로필 이미지 자르기</h3>
-            <div class="crop-container">
-                <img id="cropImage" src="">
-            </div>
-            <div class="crop-buttons">
-                <button class="btn-sub" onclick="closeModal()">취소</button>
-                <button onclick="cropAndApply()">자르기 완료</button>
-            </div>
-        </div>
+        <button onclick="downloadImage()">이미지 저장하기</button>
     </div>
 
     <div class="preview-title">미리보기</div>
@@ -404,19 +393,53 @@
         </div>
     </div>
 
+    <div class="crop-modal" id="cropModal">
+        <div class="crop-content">
+            <h3>프로필 이미지 자르기</h3>
+            <div class="crop-container">
+                <img id="cropImage" src="">
+            </div>
+            <div class="crop-buttons">
+                <button class="btn-sub" onclick="closeModal()">취소</button>
+                <button onclick="cropAndApply()">자르기 완료</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const captureArea = document.getElementById('capture-area');
         const containerFrame = document.getElementById('container-frame');
         let cropper = null;
 
-        const resizeObserver = new ResizeObserver(entries => {
-            for (let entry of entries) {
-                const currentHeight = entry.contentRect.height;
-                captureArea.style.marginBottom = `-${currentHeight * 0.5}px`;
-                containerFrame.style.height = `${(currentHeight * 0.5) + 60}px`;
-            }
+        // [변경] 창 너비 및 도화지 크기를 실시간으로 연산하여 스케일을 가변 제어하는 핵심 함수
+        function updateResponsiveScale() {
+            // 현재 외부 프레임 상자가 실제로 차지하고 있는 가로 폭 너비 측정
+            const currentContainerWidth = containerFrame.clientWidth;
+            // 1000px 기준 최적의 축소 비율 연산 (최대 0.5배율)
+            const calculatedScale = currentContainerWidth / 1000;
+            
+            // 실시간 본체 높이 측정
+            const originalHeight = captureArea.scrollHeight;
+            
+            // 1. 계산된 반응형 스케일 실시간 주입
+            captureArea.style.transform = `scale(${calculatedScale})`;
+            
+            // 2. 축소된 크기만큼 부모 박스의 높이와 여백 마진을 실시간 동기화
+            captureArea.style.marginBottom = `-${originalHeight * (1 - calculatedScale)}px`;
+            containerFrame.style.height = `${(originalHeight * calculatedScale) + 30}px`;
+        }
+
+        // 요소 크기 변경 감지 엔진 결합
+        const resizeObserver = new ResizeObserver(() => {
+            updateResponsiveScale();
         });
         resizeObserver.observe(captureArea);
+        resizeObserver.observe(containerFrame);
+
+        // 윈도우 창 크기 변경 시 즉시 동기화 실행 이벤트 등록
+        window.addEventListener('resize', updateResponsiveScale);
+        window.addEventListener('load', updateResponsiveScale);
+
 
         function initCropper(event) {
             const file = event.target.files[0];
@@ -446,6 +469,7 @@
             document.getElementById('view-profile-img').style.backgroundImage = croppedImgUrl;
             document.getElementById('mini-profile-preview').style.backgroundImage = croppedImgUrl;
             closeModal();
+            setTimeout(updateResponsiveScale, 50);
         }
 
         function closeModal() {
@@ -488,22 +512,29 @@
             } else {
                 document.getElementById('view-c2-delimiter').style.display = 'none';
             }
+            
+            // 텍스트 변동 시 스케일 즉시 반영
+            setTimeout(updateResponsiveScale, 10);
         }
 
         function downloadImage() {
+            // 관측 중단 및 스케일 리셋
             resizeObserver.unobserve(captureArea);
+            window.removeEventListener('resize', updateResponsiveScale);
+            
             captureArea.style.transform = 'none';
             captureArea.style.marginBottom = '0';
             
             html2canvas(captureArea, { scale: 1, useCORS: true }).then(canvas => {
                 const link = document.createElement('a');
-                link.download = 'lightnight_feed_optimized_notice.png';
+                link.download = 'lightnight_feed_responsive.png';
                 link.href = canvas.toDataURL('image/png');
                 link.click();
                 
-                captureArea.style.transform = 'scale(0.5)';
-                captureArea.style.transformOrigin = 'top left';
+                // 다운로드 완료 후 반응형 모드 재작동
+                window.addEventListener('resize', updateResponsiveScale);
                 resizeObserver.observe(captureArea);
+                updateResponsiveScale();
             });
         }
     </script>
