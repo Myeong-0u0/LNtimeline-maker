@@ -327,7 +327,7 @@
             margin-top: 10px; 
         }
 
-        /* [변경] 댓글 간 사이 간격 추가 3px 감축 (기존 10px -> 7px) */
+        /* 댓글 간 사이 간격 최적화 수치 유지 (7px) */
         .comment-item.second-reply {
             text-align: left;
             margin-top: 7px; 
@@ -377,42 +377,12 @@
             padding-right: 12px;
             letter-spacing: -0.5px;
         }
-
-        /* Result Output Zone */
-        .result-output-zone {
-            display: none; 
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
-            margin-top: 15px;
-            margin-bottom: 40px;
-            width: 100%;
-            max-width: 500px;
-            box-sizing: border-box;
-            text-align: center;
-        }
-
-        .result-output-zone p {
-            margin-top: 0;
-            color: #10ac84;
-            font-weight: bold;
-            font-size: 15px;
-        }
-
-        .result-output-zone img {
-            width: 100%;
-            height: auto;
-            border-radius: 8px;
-            border: 1px solid #dfe6e9;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-        }
     </style>
 </head>
 <body>
 
     <h1>빛밤 피드 메이커</h1>
-    <div class="subtitle">문제 생길시 삭제/링크 외부 유출 금지</div>
+    <div class="subtitle">문제될 시 삭제. 링크 외부 유출 금지. 업로드 시 하단 비공식 워터마크는 지우지 말아주세요ㅜ.ㅜ</div>
 
     <div class="control-panel">
         <div class="control-group">
@@ -423,15 +393,15 @@
             </div>
         </div>
         <div class="control-group">
-            <label>1. 메인 작성자 이름</label>
+            <label>1. 피드 작성자 이름</label>
             <input type="text" id="input-name" value="" placeholder="이름을 입력하세요" oninput="updateText()">
         </div>
         <div class="control-group">
-            <label>2. 메인 본문 내용</label>
+            <label>2. 피드 내용</label>
             <textarea id="input-text" rows="2" placeholder="피드 본문 내용을 입력하세요" oninput="updateText()"></textarea>
         </div>
         <div class="control-group">
-            <label>2.5 메인 본문 이미지 첨부 (자유 비율 크롭 지원)</label>
+            <label>2.5 피드 이미지 첨부 (크롭 가능/자유 비율)</label>
             <div class="post-image-upload-zone">
                 <input type="file" id="input-post-attached-image" accept="image/*" onchange="initPostCropper(event)">
                 <button class="btn-danger" onclick="removePostImage()">이미지 삭제</button>
@@ -448,17 +418,12 @@
         </div>
         <div class="control-group">
             <label>5. 좋아요한 사람</label>
-            <input type="text" id="input-heart-user" placeholder="비워둘 수 있음" oninput="updateText()">
+            <input type="text" id="input-heart-user" placeholder="비울 수 있음" oninput="updateText()">
         </div>
-        <button onclick="downloadImage()">완성된 이미지 저장</button>
+        <button onclick="downloadImage()">이미지 저장하기 (1000px 고화질)</button>
     </div>
 
-    <div class="result-output-zone" id="output-zone">
-        <p>📥 완성 이미지가 아래에 생성되었습니다!<br>사진을 꾹 누르거나 우클릭하여 [이미지 저장] 하세요.</p>
-        <img id="result-image-view" src="" alt="완성 피드 이미지">
-    </div>
-
-    <div class="preview-title">Live Preview (반응형 핏 뷰어)</div>
+    <div class="preview-title">미리보기</div>
     <div class="preview-container" id="container-frame">
         <div id="capture-area">
             
@@ -484,7 +449,7 @@
             </div>
 
             <div class="comment-box">
-                <div class="comment-header" id="view-comment-header" style="display: none; margin-bottom: 24px;">
+                <div class="comment-header" id="view-comment-header" style="display: none; margin-bottom: 14px;">
                     <span class="comment-heart">♡</span> 
                     <span class="comment-user" id="view-heart-user"></span>
                 </div>
@@ -519,7 +484,7 @@
 
     <div class="crop-modal" id="postCropModal">
         <div class="crop-content">
-            <h3>본문 이미지 자르기 (자유 비율)</h3>
+            <h3>피드 이미지 자르기 (자유 비율)</h3>
             <div class="crop-container">
                 <img id="postCropImage" src="">
             </div>
@@ -667,7 +632,6 @@
             const mainHeartSvg = document.getElementById('view-main-heart');
             const heartHeader = document.getElementById('view-comment-header');
             
-            // [변경] 이름 유무에 따른 하단 여백 스크립트 분기점 10px 최적화 감축
             if (heartUser.trim() === "") {
                 mainHeartSvg.className.baseVal = "icon-heart outline-style";
                 heartHeader.style.setProperty("display", "none", "important");
@@ -675,7 +639,7 @@
             } else {
                 mainHeartSvg.className.baseVal = "icon-heart fill-style";
                 heartHeader.style.setProperty("display", "flex", "important");
-                heartHeader.style.marginBottom = '14px'; // 원래 24px -> 14px로 10픽셀을 줄여 첫 댓글과의 거리를 당김
+                heartHeader.style.marginBottom = '14px'; 
             }
 
             if (c1User || c1Text) {
@@ -699,6 +663,7 @@
             setTimeout(updateResponsiveScale, 10);
         }
 
+        // [복구 완료] 첫 버전의 원본 파일 즉시 다운로드 엔진 패턴
         function downloadImage() {
             resizeObserver.unobserve(captureArea);
             window.removeEventListener('resize', updateResponsiveScale);
@@ -714,20 +679,15 @@
             }).then(canvas => {
                 const imgDataUrl = canvas.toDataURL('image/png');
                 
+                // 가상 링크 생성 및 즉시 클릭 이벤트 트리거 (파일 즉시 다운로드)
                 const link = document.createElement('a');
-                link.download = 'lightnight_feed.png';
+                link.download = 'LN_feed.png';
                 link.href = imgDataUrl;
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
                 
-                const outputZone = document.getElementById('output-zone');
-                const resultImg = document.getElementById('result-image-view');
-                
-                resultImg.src = imgDataUrl;
-                outputZone.style.display = 'block'; 
-                
-                outputZone.scrollIntoView({ behavior: 'smooth' });
+                // 불필요했던 하단 결과창 표기 로직 제거 완료
                 
                 window.addEventListener('resize', updateResponsiveScale);
                 resizeObserver.observe(captureArea);
