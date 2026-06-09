@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>빛밤 피드 메이커</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #f5f6fa;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 30px 20px;
+            margin: 0;
+        }
+
+        h1 {
+            color: #2f3640;
+            font-size: 26px;
+            margin-bottom: 5px;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            color: #7f8c8d;
+            font-size: 14px;
+            margin-bottom: 30px;
+        }
+
+        /* Control Panel Styles */
+        .control-panel {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            margin-bottom: 35px;
+            width: 100%;
+            max-width: 440px;
+            box-sizing: border-box;
+        }
+
+        .control-group {
+            margin-bottom: 18px;
+        }
+
+        .control-group label {
+            display: block;
+            font-weight: 700;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: #353b48;
+        }
+
+        .control-group input[type="text"], .control-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #c8d6e5;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-family: inherit;
+            font-size: 14px;
+            transition: border 0.2s;
+        }
+
+        .control-group input:focus, .control-group textarea:focus {
+            border-color: #54a0ff;
+            outline: none;
+        }
+
+        /* Profile Upload Zone */
+        .profile-upload-zone {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+
+        .mini-preview {
+            width: 45px;
+            height: 45px;
+            border-radius: 4px;
+            background-color: #dfe6e9;
+            background-image: url('https://via.placeholder.com/50');
+            background-size: cover;
+            background-position: center;
+            border: 1px solid #b2bec3;
+            flex-shrink: 0;
+        }
+
+        /* Image Crop Modal */
+        .crop-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .crop-content {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .crop-container {
+            max-height: 300px;
+            margin-bottom: 15px;
+            overflow: hidden;
+            background: #eee;
+        }
+
+        .crop-container img {
+            max-width: 100%;
+        }
+
+        .crop-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-sub {
+            background-color: #718093 !important;
+            box-shadow: 0 4px 6px rgba(113, 128, 147, 0.2) !important;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background-color: #10ac84;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            box-shadow: 0 4px 6px rgba(16, 172, 132, 0.2);
+        }
+
+        button:hover {
+            background-color: #1dd1a1;
+        }
+        button:active {
+            transform: scale(0.99);
+        }
+
+        .preview-title {
+            font-weight: 700;
+            color: #718093;
+            font-size: 14px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Preview Container Frame */
+        .preview-container {
+            background: #ffffff;
+            padding: 0;
+            border-radius: 16px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.08);
+            overflow: hidden;
+            display: inline-block;
+            width: 500px; 
+            height: auto; 
+        }
+
+        /* Capture Base Element */
+        #capture-area {
+            width: 1000px; 
+            height: auto; 
+            background-color: #FAFAFA;
+            padding: 60px 48px 60px 48px;
+            box-sizing: border-box;
+            
+            transform: scale(0.5);
+            transform-origin: top left;
+            margin-bottom: 0; 
+        }
+
+        /* Main Post Layout */
+        .main-post {
+            display: flex;
+            gap: 34px;
+            position: relative;
+            margin-bottom: 36px;
+        }
+
+        .profile-img {
+            width: 122px;
+            height: 122px;
+            border-radius: 10px;
+            background-color: #dfe6e9;
+            background-image: url('https://via.placeholder.com/150'); 
+            background-size: cover;
+            background-position: center;
+            flex-shrink: 0;
+        }
+
+        .post-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .author-name {
+            color: #6C7BA5;
+            font-weight: 400;
+            font-size: 40px;
+            margin: 0 0 11px 0;
+            min-height: 45px;
+        }
+
+        .post-text {
+            color: #5B5B5B;
+            font-size: 36px;
+            line-height: 1.3;
+            margin: 0;
+            white-space: pre-wrap;
+        }
+
+        /* Interaction Icons */
+        .interaction-icons {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 34px;
+            margin-top: -24px;    
+            margin-bottom: 18px;  
+            padding-right: 12px;
+        }
+
+        .icon-heart {
+            width: 68px;
+            height: 68px; 
+        }
+
+        .icon-comment {
+            width: 64px;
+            height: 64px; 
+        }
+
+        /* Comment Box Layout */
+        .comment-box {
+            background-color: #F0F0F0;
+            border-radius: 12px;
+            padding: 6px 38px 30px 28px;
+            font-size: 35px;
+            margin-left: 156px; 
+        }
+
+        .comment-item {
+            text-align: left;
+        }
+
+        .comment-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 24px;
+            min-height: 40px;
+        }
+
+        .comment-heart {
+            font-size: 32px;
+            color: #6C7BA5;
+        }
+
+        .comment-user {
+            font-weight: 400;
+            color: #6C7BA5;
+        }
+
+        .comment-body {
+            color: #5B5B5B;
+            line-height: 1.25;
+            white-space: pre-wrap;
+            margin: 0;
+            padding: 0;
+        }
+
+        .reply-user {
+            font-weight: 400;
+            color: #6C7BA5;
+        }
+
+        .reply-text-center {
+            color: #5B5B5B;
+            font-weight: 400;
+        }
+
+        /* [변경] 비공식 안내 문구 스타일 정밀 튜닝 */
+        .unofficial-notice {
+            text-align: right;
+            color: #BCBCBC;             /* 기존 #A0A0A0 -> 더 부드럽고 연한 연회색(#BCBCBC)으로 전면 변경 */
+            font-size: 22px;            /* 기존 24px -> 22px로 2px 축소 (화면 실체감 정확히 1pt 단축) */
+            font-weight: 400;
+            margin-top: 50px;
+            padding-right: 12px;
+            letter-spacing: -0.5px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>빛밤 피드 메이커</h1>
+    <div class="subtitle">문제가 생길 시 불시에 내려갈 수 있습니다.</div>
+
+    <div class="control-panel">
+        <div class="control-group">
+            <label>0. 프로필 사진 업로드 (크롭 가능)</label>
+            <div class="profile-upload-zone">
+                <div class="mini-preview" id="mini-profile-preview"></div>
+                <input type="file" id="input-profile-img" accept="image/*" onchange="initCropper(event)">
+            </div>
+        </div>
+        <div class="control-group">
+            <label>1. 피드 작성자 이름</label>
+            <input type="text" id="input-name" value="" placeholder="이름을 입력하세요" oninput="updateText()">
+        </div>
+        <div class="control-group">
+            <label>2. 피드 내용</label>
+            <textarea id="input-text" rows="2" placeholder="피드 본문 내용을 입력하세요" oninput="updateText()"></textarea>
+        </div>
+        <div class="control-group">
+            <label>3. 댓글 작성자 / 댓글</label>
+            <input type="text" id="input-c1-user" value="" placeholder="댓글 작성자 이름" oninput="updateText()" style="margin-bottom:5px;">
+            <textarea id="input-c1-text" rows="2" placeholder="댓글 내용을 입력하세요" oninput="updateText()"></textarea>
+        </div>
+        <div class="control-group">
+            <label>4. 대댓글 본문</label>
+            <textarea id="input-c2-text" rows="3" placeholder="답글 내용을 입력하세요" oninput="updateText()"></textarea>
+        </div>
+        <div class="control-group">
+            <label>5. 좋아요한 사람</label>
+            <input type="text" id="input-heart-user" value="" placeholder=" 좋아요한 사람" oninput="updateText()">
+        </div>
+        <button onclick="downloadImage()">이미지 저장</button>
+    </div>
+
+    <div class="crop-modal" id="cropModal">
+        <div class="crop-content">
+            <h3>프로필 이미지 자르기</h3>
+            <div class="crop-container">
+                <img id="cropImage" src="">
+            </div>
+            <div class="crop-buttons">
+                <button class="btn-sub" onclick="closeModal()">취소</button>
+                <button onclick="cropAndApply()">자르기 완료</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="preview-title">미리보기</div>
+    <div class="preview-container" id="container-frame">
+        <div id="capture-area">
+            
+            <div class="main-post">
+                <div class="profile-img" id="view-profile-img"></div>
+                <div class="post-content">
+                    <p class="author-name" id="view-name"></p>
+                    <p class="post-text" id="view-text"></p>
+                </div>
+            </div>
+
+            <div class="interaction-icons">
+                <svg class="icon-heart" viewBox="0 0 24 24" fill="#FF8897"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                <svg class="icon-comment" viewBox="0 0 24 24" fill="#FF8897">
+                    <path d="M11 2C5.48 2 1 6.48 1 12s4.48 10 10 10c1.82 0 3.53-.49 5.01-1.34L21.5 22c.36.11.71-.23.6-.6l-1.34-5.49C21.51 15.53 22 13.82 22 12c0-5.52-4.48-10-10-10z"/>
+                </svg>
+            </div>
+
+            <div class="comment-box">
+                <div class="comment-header">
+                    <span class="comment-heart">♡</span> <span class="comment-user" id="view-heart-user"></span>
+                </div>
+
+                <div class="comment-item">
+                    <div class="comment-body"><span class="reply-user" id="view-c1-user"></span><span id="view-c1-delimiter" style="display:none;">: </span><span id="view-c1-text"></span></div>
+                </div>
+                
+                <div class="comment-item" id="view-c2-item" style="margin-top: 10px;">
+                    <div class="comment-body"><span class="reply-user" id="view-reply-from"></span><span class="reply-text-center" id="view-reply-center" style="display:none;">답장</span><span class="reply-user" id="view-reply-to"></span><span id="view-c2-delimiter" style="display:none;">: </span><span id="view-c2-text"></span></div>
+                </div>
+            </div>
+
+            <div class="unofficial-notice">*이 이미지는 비공식 이미지입니다.</div>
+
+        </div>
+    </div>
+
+    <script>
+        const captureArea = document.getElementById('capture-area');
+        const containerFrame = document.getElementById('container-frame');
+        let cropper = null;
+
+        const resizeObserver = new ResizeObserver(entries => {
+            for (let entry of entries) {
+                const currentHeight = entry.contentRect.height;
+                captureArea.style.marginBottom = `-${currentHeight * 0.5}px`;
+                containerFrame.style.height = `${(currentHeight * 0.5) + 60}px`;
+            }
+        });
+        resizeObserver.observe(captureArea);
+
+        function initCropper(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const imageEl = document.getElementById('cropImage');
+                imageEl.src = e.target.result;
+                document.getElementById('cropModal').style.display = 'flex';
+                
+                if (cropper) { cropper.destroy(); }
+                cropper = new Cropper(imageEl, {
+                    aspectRatio: 1, 
+                    viewMode: 1,
+                    autoCropArea: 1,
+                    background: false
+                });
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function cropAndApply() {
+            if (!cropper) return;
+            const canvas = cropper.getCroppedCanvas({ width: 350, height: 350 });
+            const croppedImgUrl = `url('${canvas.toDataURL('image/png')}')`;
+            document.getElementById('view-profile-img').style.backgroundImage = croppedImgUrl;
+            document.getElementById('mini-profile-preview').style.backgroundImage = croppedImgUrl;
+            closeModal();
+        }
+
+        function closeModal() {
+            document.getElementById('cropModal').style.display = 'none';
+            document.getElementById('input-profile-img').value = '';
+        }
+
+        function updateText() {
+            const name = document.getElementById('input-name').value;
+            const text = document.getElementById('input-text').value;
+            const c1User = document.getElementById('input-c1-user').value;
+            const c1Text = document.getElementById('input-c1-text').value;
+            const c2Text = document.getElementById('input-c2-text').value;
+            const heartUser = document.getElementById('input-heart-user').value;
+
+            document.getElementById('view-name').innerText = name;
+            document.getElementById('view-text').innerText = text;
+            document.getElementById('view-c1-user').innerText = c1User;
+            document.getElementById('view-c1-text').innerText = c1Text;
+            document.getElementById('view-c2-text').innerText = c2Text;
+            document.getElementById('view-heart-user').innerText = heartUser;
+            
+            document.getElementById('view-reply-from').innerText = name;
+            document.getElementById('view-reply-to').innerText = c1User;
+
+            if (c1User || c1Text) {
+                document.getElementById('view-c1-delimiter').style.display = 'inline';
+            } else {
+                document.getElementById('view-c1-delimiter').style.display = 'none';
+            }
+
+            if (name && c1User && c2Text) {
+                document.getElementById('view-reply-center').style.display = 'inline';
+            } else {
+                document.getElementById('view-reply-center').style.display = 'none';
+            }
+
+            if (c2Text) {
+                document.getElementById('view-c2-delimiter').style.display = 'inline';
+            } else {
+                document.getElementById('view-c2-delimiter').style.display = 'none';
+            }
+        }
+
+        function downloadImage() {
+            resizeObserver.unobserve(captureArea);
+            captureArea.style.transform = 'none';
+            captureArea.style.marginBottom = '0';
+            
+            html2canvas(captureArea, { scale: 1, useCORS: true }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = 'lightnight_feed_optimized_notice.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                
+                captureArea.style.transform = 'scale(0.5)';
+                captureArea.style.transformOrigin = 'top left';
+                resizeObserver.observe(captureArea);
+            });
+        }
+    </script>
+</body>
+</html>
