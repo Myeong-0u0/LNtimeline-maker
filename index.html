@@ -74,7 +74,7 @@
             color: #353b48;
         }
 
-        .control-group input[type="text"], .control-group textarea, .control-group input[type="file"] {
+        .control-group input[type="text"], .control-group input[type="file"] {
             width: 100%;
             padding: 10px;
             border: 1px solid #c8d6e5;
@@ -83,6 +83,20 @@
             font-family: inherit;
             font-size: 14px;
             transition: border 0.2s;
+        }
+
+        /* [변경] 본문, 댓글, 답글 입력창(textarea)이 세로로만 늘어나도록 정밀 지정 */
+        .control-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #c8d6e5;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-family: inherit;
+            font-size: 14px;
+            transition: border 0.2s;
+            resize: vertical; /* 가로 확장 원천 차단, 오직 세로 조절만 허용 */
+            min-height: 60px;  /* 최소 높이 지정으로 UI 깨짐 방지 */
         }
 
         .control-group input:focus, .control-group textarea:focus {
@@ -549,7 +563,6 @@
         let profileCropper = null;
         let postCropper = null;
 
-        // [교정] 연동 해상도 비례 축소 시, 하단에 불필요하게 더해지던 덤 여백(+30) 소거
         function updateResponsiveScale() {
             const currentContainerWidth = containerFrame.clientWidth;
             const calculatedScale = currentContainerWidth / 1000;
@@ -557,7 +570,7 @@
             
             captureArea.style.transform = `scale(${calculatedScale})`;
             captureArea.style.marginBottom = `-${originalHeight * (1 - calculatedScale)}px`;
-            containerFrame.style.height = `${(originalHeight * calculatedScale)}px`; // 원래 '+ 30' 여백 연산 제거 완료
+            containerFrame.style.height = `${(originalHeight * calculatedScale)}px`; 
         }
 
         const resizeObserver = new ResizeObserver(() => {
