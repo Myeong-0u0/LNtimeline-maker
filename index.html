@@ -562,7 +562,7 @@
 <body>
 
     <h1>빛밤 피드 메이커</h1>
-    <div class="subtitle">문제될 시 삭제. 출처표기 안해도 됨. 알잘딱 써주시길...</div>
+    <div class="subtitle">문제될 시 삭제. 링크 외부 유출 금지. 업로드 시 하단 비공식 워터마크는 지우지 말아주세요ㅜ.ㅜ</div>
 
     <!-- 메인 워크스페이스 -->
     <div class="workspace-container">
@@ -570,22 +570,22 @@
         <!-- LEFT SIDE: 컨트롤 패널 -->
         <div class="control-panel">
             <div class="control-group">
-                <label>1. 프로필 사진 업로드 </label>
+                <label>0. 프로필 사진 업로드 (크롭 가능)</label>
                 <div class="profile-upload-zone">
                     <div class="mini-preview" id="mini-profile-preview"></div>
                     <input type="file" id="input-profile-img" accept="image/*" onchange="initProfileCropper(event)">
                 </div>
             </div>
             <div class="control-group">
-                <label>2. 피드 작성자 이름</label>
+                <label>1. 피드 작성자 이름</label>
                 <input type="text" id="input-name" value="" placeholder="이름을 입력하세요" oninput="updateText()">
             </div>
             <div class="control-group">
-                <label>3. 피드 내용</label>
+                <label>2. 피드 내용</label>
                 <textarea id="input-text" rows="2" placeholder="피드 본문 내용을 입력하세요" oninput="updateText()"></textarea>
             </div>
             <div class="control-group">
-                <label>4. 피드 이미지 첨부 </label>
+                <label>2.5 피드 이미지 첨부 (크롭 가능/자유 비율)</label>
                 <div class="post-image-upload-zone">
                     <input type="file" id="input-post-attached-image" accept="image/*" onchange="initPostCropper(event)">
                     <button class="btn-danger" onclick="removePostImage()">이미지 삭제</button>
@@ -594,18 +594,18 @@
 
             <!-- 동적 댓글 컨테이너 -->
             <div class="control-group">
-                <label>5. 댓글 및 답글 관리</label>
+                <label>3. 댓글 및 답글 관리</label>
                 <div id="comments-input-list"></div>
                 <button type="button" class="btn-add-comment" onclick="addCommentInput()">+ 댓글 추가</button>
             </div>
 
-            <!-- 하트 채우기 수동 스위치 옵션 (기본 비활성화) -->
+            <!-- 하트 채우기 수동 스위치 옵션 -->
             <div class="control-group">
-                <label>6. 좋아요한 사람</label>
+                <label>4. 좋아요한 사람</label>
                 <input type="text" id="input-heart-user" placeholder="비울 수 있음" oninput="handleHeartUserInput()">
                 <label class="checkbox-label">
                     <input type="checkbox" id="input-heart-fill-toggle" onchange="updateText()">
-                    하트 누르기
+                    메인 하트 아이콘 핑크색 채우기
                 </label>
             </div>
             <button class="btn-main-save" onclick="downloadImage()">이미지 저장하기</button>
@@ -691,14 +691,14 @@
         let profileCropper = null;
         let postCropper = null;
 
-        // 댓글 데이터 배열 관리
+        // 댓글 데이터 배열 관리 (targetUser 필드 추가)
         let commentsData = [
             {
                 id: Date.now(),
                 user: '',
                 text: '',
                 replies: [
-                    { id: Date.now() + 1, user: '', text: '' }
+                    { id: Date.now() + 1, user: '', targetUser: '', text: '' }
                 ]
             }
         ];
@@ -848,7 +848,8 @@
                                 <span>↳ 답글 ${rIndex + 1}</span>
                                 <button type="button" class="btn-small-danger" onclick="removeReplyInput(${comment.id}, ${reply.id})">x 삭제</button>
                             </div>
-                            <input type="text" placeholder="답글 작성자 이름" value="${escapeHtml(reply.user)}" oninput="updateReplyData(${comment.id}, ${reply.id}, 'user', this.value)" style="margin-bottom:5px;">
+                            <input type="text" placeholder="답글 작성자 이름 (기본값: 메인 이름)" value="${escapeHtml(reply.user)}" oninput="updateReplyData(${comment.id}, ${reply.id}, 'user', this.value)" style="margin-bottom:5px;">
+                            <input type="text" placeholder="답글 받는 사람 (기본값: 댓글 작성자)" value="${escapeHtml(reply.targetUser)}" oninput="updateReplyData(${comment.id}, ${reply.id}, 'targetUser', this.value)" style="margin-bottom:5px;">
                             <textarea rows="2" placeholder="답글 내용을 입력하세요" oninput="updateReplyData(${comment.id}, ${reply.id}, 'text', this.value)">${escapeHtml(reply.text)}</textarea>
                         </div>
                     `;
@@ -892,6 +893,7 @@
                 comment.replies.push({
                     id: Date.now(),
                     user: '',
+                    targetUser: '',
                     text: ''
                 });
                 renderCommentInputs();
@@ -925,7 +927,7 @@
             }
         }
 
-        // 좋아요한 사람 입력 관련 핸들러
+        // 좋아요한 사람 입력 연동
         function handleHeartUserInput() {
             updateText();
         }
@@ -976,17 +978,21 @@
                     viewCommentsList.appendChild(commentEl);
                 }
 
-                // 해당 댓글의 답글들 렌더링
+                // 해당 댓글의 답글들 렌더링 (보내는 사람과 받는 사람 교대 설정 지원)
                 comment.replies.forEach((reply) => {
-                    if (reply.user || reply.text) {
+                    if (reply.user || reply.targetUser || reply.text) {
                         const replyEl = document.createElement('div');
                         replyEl.className = 'comment-item is-reply';
                         
+                        // 답글 작성자 (입력값 없으면 메인 피드 작성자 이름으로 자동 대체)
                         const replyAuthor = reply.user ? reply.user : mainName;
-                        const replyCenter = (replyAuthor && comment.user) ? '답장' : '';
-                        const delimiter = (replyAuthor || comment.user) && reply.text ? ': ' : '';
+                        // 답글 받는 사람 (입력값 없으면 댓글 작성자 이름으로 자동 대체)
+                        const replyTarget = reply.targetUser ? reply.targetUser : comment.user;
+                        
+                        const replyCenter = (replyAuthor && replyTarget) ? '답장' : '';
+                        const delimiter = (replyAuthor || replyTarget) && reply.text ? ': ' : '';
 
-                        replyEl.innerHTML = `<div class="comment-body"><span class="reply-user">${escapeHtml(replyAuthor)}</span><span class="reply-text-center">${replyCenter}</span><span class="reply-user">${escapeHtml(comment.user)}</span><span>${delimiter}</span><span>${escapeHtml(reply.text)}</span></div>`;
+                        replyEl.innerHTML = `<div class="comment-body"><span class="reply-user">${escapeHtml(replyAuthor)}</span><span class="reply-text-center">${replyCenter}</span><span class="reply-user">${escapeHtml(replyTarget)}</span><span>${delimiter}</span><span>${escapeHtml(reply.text)}</span></div>`;
                         viewCommentsList.appendChild(replyEl);
                     }
                 });
